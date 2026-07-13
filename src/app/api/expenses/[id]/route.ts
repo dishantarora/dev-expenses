@@ -18,7 +18,8 @@ export async function DELETE(
     request: Request,
     { params }: { params: { id: string } }
 ) {
-    const deleted = deleteExpense(params.id);
+    const { id } = await params;
+    const deleted = deleteExpense(id);
 
     if (!deleted) {
         return NextResponse.json({ error: "Expense not found" }, { status: 404 });
