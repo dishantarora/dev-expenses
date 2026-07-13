@@ -9,13 +9,10 @@ export async function GET() {
 export async function POST(request: Request) {
     const body = await request.json();
     if (
-        typeof body.description !== "string" ||
-        !body.description.trim() ||
+        typeof body.name !== "string" ||
+        !body.name.trim() ||
         typeof body.amount !== "number" ||
-        body.amount <= 0 ||
-        typeof body.category !== "string" ||
-        typeof body.frequency !== "string" ||
-        typeof body.dueDate !== "string"
+        body.amount <= 0
     ) {
         return NextResponse.json(
             { error: "Invalid expense data" },
