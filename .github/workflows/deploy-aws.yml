@@ -2,7 +2,23 @@ name: Deploy to AWS
 
 on:
   push:
-    branches: [main]
+    branches:
+      - develop
+      - qa
+      - uat
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - qa
+          - uat
+          - prod
 
 jobs:
   ci:
@@ -23,6 +39,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    environment: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'prod') || (github.ref_name == 'uat' && 'uat') || (github.ref_name == 'qa' && 'qa') || 'dev' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -41,14 +58,17 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
+          ENVIRONMENT: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'prod') || (github.ref_name == 'uat' && 'uat') || (github.ref_name == 'qa' && 'qa') || 'dev' }}
         run: |
-          docker build -t $ECR_REGISTRY/dev-expenses:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/dev-expenses:$IMAGE_TAG
+          docker build -t $ECR_REGISTRY/dev-expenses-$ENVIRONMENT:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/dev-expenses-$ENVIRONMENT:$IMAGE_TAG
 
       - name: Update ECS service with new image
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'prod') || (github.ref_name == 'uat' && 'uat') || (github.ref_name == 'qa' && 'qa') || 'dev' }}
         run: |
           aws ecs update-service \
-            --cluster dev-expenses-cluster \
-            --service dev-expenses-blue \
+            --cluster dev-expenses-$ENVIRONMENT \
+            --service dev-expenses-$ENVIRONMENT-blue \
             --force-new-deployment \
             --region us-east-1
